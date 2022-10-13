@@ -202,6 +202,6 @@ echo Share path: \\%COMPUTERNAME%\scans    (copied to clipboard)
 echo Username: %username%
 echo Password: %password%
 echo ------------------------------------------
-echo \\%COMPUTERNAME%\scans | clip
+echo \\%COMPUTERNAME%\scans| clip
 pause
 :end
