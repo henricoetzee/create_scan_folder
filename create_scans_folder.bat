@@ -47,29 +47,25 @@ REM ------------------START OF PRIVILEGDE FUNCTION-----------------------
 REM ------------END OF PRIVILEDGE FUNCTION----------------------
 
 cls
-echo WARNING!!!!
-echo.
-echo This program will make changes to your PC.
-echo Please read through this text so that you understand what 
-echo this program changes so that you can undo the changes if anything goes wrong.
+echo ------------------------------------------------------
+echo WARNING!!!! This program will make changes to your PC.
+echo ------------------------------------------------------
 echo.
 echo This program requires powershell to be installed on the PC.
 echo.
-echo This program comes with no warrenty.
 echo.
-echo These are the things that this program will do:
+echo These are the steps that we will go through:
 echo.
-echo 1. A new folder will be created on your pc.
+echo Step 1. Specify a new or existing folder to be used for scanning.
 echo.
-echo 2. A new user may be created on this pc.
-echo    Please don't create a new username that already exists.
+echo Step 2. Specify a new or existing user to be used for scanning. 
 echo.
-echo 3. A new share will be created with the name "scans".
-echo    The specified user will be given full access to this share.
+echo Step 3. A new share will be created with the name "scans".
+echo         The specified user will be given full access to this share.
 echo.
-echo 4. The current connected network profile will be changed to Private.
+echo Step 4. The current connected network profile will be changed to Private.
 echo.
-echo 5. "Network discovery" and "File and printer sharing" will be enabled for the Private network profile.
+echo Step 5. "Network discovery" and "File and printer sharing" will be enabled for the Private network profile.
 echo.
 echo To continue, press y
 echo To exit, press n
@@ -79,6 +75,7 @@ goto end
 
 :start
 cls
+echo ------------------
 echo Scans folder setup
 echo ------------------
 echo.
@@ -97,13 +94,32 @@ if %ERRORLEVEL% == 4 goto get_folder
 goto create_folder
 
 :get_folder
-set /p "scandir=Folder path to create/use:"
+set /p "scandir=Folder path to create/use (eg c:\data\scans): "
 
 :create_folder
-mkdir %scandir%
+if exist "%scandir%\" (
+        echo Folder exists
+	goto create_user_question
+    ) else if not exist "%scandir%" (
+        mkdir %scandir%
+	if ERRORLEVEL 1 goto create_folder_error
+        goto create_user_question
+    ) else (
+        echo There is a file with the same name as the required folder.
+        goto create_folder_error
+    )
+
+:create_folder_error
+echo Error occurred
+echo 1. Try again
+echo 2. Quit
+choice /C 12 /N
+if %ERRORLEVEL% == 1 goto start
+goto end
 
 :create_user_question
 cls
+echo ------------------
 echo Scans folder setup
 echo ------------------
 echo.
@@ -137,20 +153,37 @@ goto create_user_command
 
 :create_user_4
 set /p "username=Username:"
+net user %username%
+if ERRORLEVEL 1 goto create_user_error
 goto share_folder_question
 
 :create_user_command
 net user %username% %password% /add
+if ERRORLEVEL 1 goto create_user_error
 wmic useraccount where "name='%username%'" set passwordexpires=false
+goto share_folder_question
+
+:create_user_error
+echo.
+echo Error occurred during user creation/specication.
+echo 1. exit
+echo 2. continue
+echo 3. retry
+choice /C 123 /N
+if %ERRORLEVEL% == 1 goto end
+if %ERRORLEVEL% == 3 goto create_user_question
 
 :share_folder_question
 cls
+echo ------------------
 echo Scans folder setup
 echo ------------------
 echo.
 echo Step 3: Creating share
 echo.
+net share scans /delete
 net share scans="%scandir%" /grant:%username%,full
+icacls "%scandir%" /grant %username%:(OI)(CI)F /T
 echo.
 echo Step 4: Changing network profile to Private
 echo.
@@ -161,12 +194,14 @@ echo.
 netsh advfirewall firewall set rule group="Network Discovery" new enable=Yes
 netsh advfirewall firewall set rule group="File and Printer Sharing" new enable=Yes
 echo.
+echo ------------------------------------------
 echo Done.
-echo.
+echo ------------------------------------------
 echo Scan folder location: %scandir%
-echo Share path: \\%COMPUTERNAME%\scans
+echo Share path: \\%COMPUTERNAME%\scans    (copied to clipboard)
 echo Username: %username%
 echo Password: %password%
-echo.
+echo ------------------------------------------
+echo \\%COMPUTERNAME%\scans | clip
 pause
 :end
