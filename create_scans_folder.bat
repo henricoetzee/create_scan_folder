@@ -79,7 +79,7 @@ echo ------------------
 echo Scans folder setup
 echo ------------------
 echo.
-echo Step 1: Create folder
+echo Step 1: Create folder:
 echo.
 echo Where would you like the scans folder?
 echo 1. %USERPROFILE%\Desktop\Scans
@@ -95,12 +95,13 @@ goto create_folder
 
 :get_folder
 set /p "scandir=Folder path to create/use (eg c:\data\scans): "
+set scandir="%scandir%"
 
 :create_folder
-if exist "%scandir%\" (
+if exist %scandir%\ (
         echo Folder exists
 	goto create_user_question
-    ) else if not exist "%scandir%" (
+    ) else if not exist %scandir% (
         mkdir %scandir%
 	if ERRORLEVEL 1 goto create_folder_error
         goto create_user_question
@@ -108,6 +109,7 @@ if exist "%scandir%\" (
         echo There is a file with the same name as the required folder.
         goto create_folder_error
     )
+pause
 
 :create_folder_error
 echo Error occurred
@@ -123,18 +125,22 @@ echo ------------------
 echo Scans folder setup
 echo ------------------
 echo.
-echo Step 2: Create/Specify user to use for shared folder
+echo Step 1: Folder to use: %scandir%
+echo.
+echo Step 2: Create/Specify user to use for shared folder:
 echo.
 echo User and password to use:
 echo 1. Create new username: scan  password: scan
 echo 2. Create new username: scan  password: Sc@nn3r123
 echo 3. Specify new user
 echo 4. Specify existing user
-choice /C 1234 /N
+echo 5. Quit
+choice /C 12345 /N
 if %ERRORLEVEL% == 1 goto create_user_1
 if %ERRORLEVEL% == 2 goto create_user_2
 if %ERRORLEVEL% == 3 goto create_user_3
 if %ERRORLEVEL% == 4 goto create_user_4
+if %ERRORLEVEL% == 5 goto end
 
 :create_user_1
 set username=scan
@@ -181,18 +187,18 @@ echo ------------------
 echo.
 echo Step 3: Creating share
 echo.
-net share scans /delete
-net share scans="%scandir%" /grant:%username%,full
-icacls "%scandir%" /grant %username%:(OI)(CI)F /T
+net share scans /delete >nul
+net share scans=%scandir% /grant:%username%,full >nul
+icacls %scandir% /grant %username%:(OI)(CI)F /T >nul
 echo.
 echo Step 4: Changing network profile to Private
 echo.
-powershell.exe -command Set-NetConnectionProfile -NetworkCategory Private
+powershell.exe -command Set-NetConnectionProfile -NetworkCategory Private >nul
 echo.
 echo Step 5: Enabling "Network Discovery" and "File and Printer Sharing"
 echo.
-netsh advfirewall firewall set rule group="Network Discovery" new enable=Yes
-netsh advfirewall firewall set rule group="File and Printer Sharing" new enable=Yes
+netsh advfirewall firewall set rule group="Network Discovery" new enable=Yes >nul
+netsh advfirewall firewall set rule group="File and Printer Sharing" new enable=Yes >nul
 echo.
 echo ------------------------------------------
 echo Done.
